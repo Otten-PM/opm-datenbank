@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>OPM Datenbank</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="OPM">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#0B3A5B">
+<style>
+:root{--bg:#F3F6F8;--card:#FFFFFF;--ink:#1C2830;--muted:#5B6873;--line:#D6DEE4;--accent:#006AA6;--red:#B3363A;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#0F171D;--card:#17222A;--ink:#E4ECF1;--muted:#9AAAB6;--line:#2A3943;--accent:#4AA8DE;--red:#E06063;color-scheme:dark}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;display:grid;place-items:center;padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+.box{width:100%;max-width:380px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:28px 24px;display:grid;gap:14px}
+.logo{width:170px;height:auto;justify-self:start;background:#fff;border-radius:8px;padding:8px 10px;box-sizing:content-box}
+h1{margin:4px 0 0;font-size:24px;line-height:1.15}
+p{margin:0;color:var(--muted);font-size:15px}
+label{font-weight:600;font-size:14px}
+input{width:100%;font:inherit;font-size:17px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+input:focus{outline:2px solid var(--accent);outline-offset:1px}
+button{font:inherit;font-weight:700;font-size:17px;padding:12px;border:0;border-radius:10px;background:var(--accent);color:#fff;cursor:pointer}
+button:disabled{opacity:.6}
+.msg{color:var(--red);font-size:14px;min-height:1.3em}
+.lade{display:grid;gap:10px;justify-items:center;text-align:center}
+.spin{width:28px;height:28px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:d 1s linear infinite}
+@keyframes d{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+</style>
+</head>
+<body>
+<div class="box" id="lade"><div class="lade"><div class="spin" aria-hidden="true"></div><p id="ladeText">OPM Datenbank wird geladen …</p></div></div>
+<form class="box" id="anmelden" hidden autocomplete="on">
+  <img class="logo" src="logo.png" alt="Otten Projectmanagement" width="170" height="58">
+  <h1>OPM Datenbank</h1>
+  <p>Nur für das OPM-Team. Gib einmal das Team-Passwort ein, dein Handy merkt es sich.</p>
+  <input type="text" name="username" value="OPM-Team" autocomplete="username" hidden>
+  <label for="pw">Team-Passwort</label>
+  <input id="pw" name="password" type="password" autocomplete="current-password" required>
+  <button id="los" type="submit">Öffnen</button>
+  <p class="msg" id="msg" role="alert"></p>
+</form>
+<script>
+(function(){
+  var enc = new TextEncoder(), dec = new TextDecoder();
+  function unb64(s){ var b = atob(s), u = new Uint8Array(b.length); for(var i=0;i<b.length;i++) u[i] = b.charCodeAt(i); return u; }
+  function b64(u){ var s = ''; for(var i=0;i<u.length;i++) s += String.fromCharCode(u[i]); return btoa(s); }
+  function idb(){ return new Promise(function(res, rej){ var r = indexedDB.open('opm', 1); r.onupgradeneeded = function(){ r.result.createObjectStore('kv'); }; r.onsuccess = function(){ res(r.result); }; r.onerror = function(){ rej(r.error); }; }); }
+  function kv(mode, fn){ return idb().then(function(d){ return new Promise(function(res, rej){ var t = d.transaction('kv', mode), st = t.objectStore('kv'), q = fn(st); t.oncomplete = function(){ res(q && q.result); }; t.onerror = function(){ rej(t.error); }; }); }).catch(function(){ return null; }); }
+  var get = function(k){ return kv('readonly', function(s){ return s.get(k); }); };
+  var put = function(k, v){ return kv('readwrite', function(s){ return s.put(v, k); }); };
+  var del = function(k){ return kv('readwrite', function(s){ return s.delete(k); }); };
+  var $ = function(id){ return document.getElementById(id); };
+
+  function zeigeAnmeldung(t){ $('lade').hidden = true; $('anmelden').hidden = false; $('msg').textContent = t || ''; $('los').disabled = false; setTimeout(function(){ $('pw').focus(); }, 50); }
+  function fehler(t){ $('lade').hidden = false; $('anmelden').hidden = true; $('ladeText').textContent = t; document.querySelector('.spin').hidden = true; }
+
+  function swBereit(){
+    if(!('serviceWorker' in navigator)) return Promise.resolve(false);
+    return navigator.serviceWorker.register('sw.js').then(function(){
+      if(navigator.serviceWorker.controller) return true;
+      return new Promise(function(res){
+        var t = setTimeout(function(){ res(!!navigator.serviceWorker.controller); }, 4000);
+        navigator.serviceWorker.addEventListener('controllerchange', function(){ clearTimeout(t); res(true); }, {once: true});
+      });
+    }).catch(function(){ return false; });
+  }
+  function holen(url){ return fetch(url).then(function(r){ if(!r.ok) throw new Error(url + ' ' + r.status); return r.arrayBuffer(); }); }
+  function entschluesseln(key, buf){ var u = new Uint8Array(buf); return crypto.subtle.decrypt({name: 'AES-GCM', iv: u.slice(0, 12)}, key, u.slice(12)); }
+  function schluesselAus(pw, ver){
+    return crypto.subtle.importKey('raw', enc.encode(pw), 'PBKDF2', false, ['deriveKey']).then(function(base){
+      return crypto.subtle.deriveKey({name: 'PBKDF2', salt: unb64(ver.salt), iterations: ver.iter, hash: 'SHA-256'}, base, {name: 'AES-GCM', length: 256}, true, ['decrypt']);
+    });
+  }
+
+  var ver = null, sw = null;
+  function ableiten(pw, salt){ return schluesselAus(pw, {salt: salt, iter: ver.iter}); }
+  function roh(k){ return crypto.subtle.exportKey('raw', k).then(function(r){ return b64(new Uint8Array(r)); }); }
+  function importieren(r){ return crypto.subtle.importKey('raw', unb64(r), {name: 'AES-GCM'}, true, ['decrypt']); }
+
+  /* keys: {c: Leitungs-Schlüssel oder null, t: Team-Schlüssel oder null}. Leitung bekommt den Team-Schlüssel aus ihren Daten. */
+  function oeffnen(keys, gespeichert){
+    $('ladeText').textContent = 'OPM Datenbank wird geöffnet …'; $('lade').hidden = false; $('anmelden').hidden = true;
+    var chef = !!keys.c, daten;
+    return holen((chef ? 'data-chef.enc' : 'data.enc') + '?v=' + ver.v).then(function(b){
+      return entschluesseln(chef ? keys.c : keys.t, b).catch(function(){ throw {pw: true}; });
+    }).then(function(p){
+      daten = JSON.parse(dec.decode(p));
+      return chef ? importieren(daten.teamKey) : keys.t;
+    }).then(function(kt){
+      keys.t = kt; delete daten.teamKey;
+      return holen('app.enc?v=' + ver.v).then(function(b){ return entschluesseln(kt, b); });
+    }).then(function(appBuf){
+      var html = dec.decode(appBuf);
+      daten.v = ver.v; daten.stand = ver.stand;
+      return Promise.all([roh(keys.t), chef ? roh(keys.c) : null]).then(function(r){
+        return put('key', {salt: ver.salt, raw: r[0], salt2: chef ? ver.salt2 : null, raw2: r[1]});
+      }).then(function(){ return put('ver', ver); }).then(function(){ return sw; }).then(function(){
+        window.__OPM = daten;
+        document.open(); document.write(html); document.close();
+      });
+    }).catch(function(e){
+      if(e && e.pw){ if(gespeichert){ del('key'); zeigeAnmeldung('Das Passwort wurde geändert. Bitte das neue eingeben.'); } else throw e; }
+      else fehler('Die Datenbank konnte nicht geladen werden. Prüfe die Internetverbindung und öffne die App noch einmal.');
+    });
+  }
+
+  $('anmelden').addEventListener('submit', function(e){
+    e.preventDefault(); var pw = $('pw').value.trim(); if(!pw) return;
+    $('los').disabled = true; $('msg').textContent = '';
+    ableiten(pw, ver.salt).then(function(kt){ return oeffnen({t: kt, c: null}, false); })
+      .catch(function(){ return ableiten(pw, ver.salt2).then(function(kc){ return oeffnen({t: null, c: kc}, false); }); })
+      .catch(function(){ zeigeAnmeldung('Das Passwort stimmt nicht.'); });
+  });
+
+  if(!window.crypto || !crypto.subtle){ fehler('Dieser Browser wird nicht unterstützt. Bitte Safari (iPhone) oder Chrome (Android) verwenden.'); return; }
+  sw = swBereit();
+  fetch('version.json?t=' + Date.now(), {cache: 'no-store'}).then(function(r){ if(!r.ok) throw 0; return r.json(); })
+    .catch(function(){ return get('ver'); })
+    .then(function(v){
+      if(!v){ fehler('Keine Verbindung. Beim ersten Öffnen braucht die App Internet.'); return; }
+      ver = v;
+      return get('key').then(function(s){
+        if(s && s.raw2 && s.salt2 === ver.salt2) return importieren(s.raw2).then(function(kc){ return oeffnen({t: null, c: kc}, true); });
+        if(s && !s.raw2 && s.salt === ver.salt) return importieren(s.raw).then(function(kt){ return oeffnen({t: kt, c: null}, true); });
+        zeigeAnmeldung(s ? 'Das Passwort wurde geändert. Bitte das neue eingeben.' : '');
+      });
+    });
+})();
+</script>
+</body>
+</html>

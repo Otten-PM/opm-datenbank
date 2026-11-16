@@ -1,0 +1,185 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="icon-192.png"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}</style></head><body>
+<title>OPM-Datenbank App</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+/* Layout: OPM-Kopfband mit Link + QR-Code, darunter zwei Spalten iPhone | Android, danach „Immer aktuell“ und „Wenn es hakt“ – auf dem Handy alles untereinander */
+:root{
+  --bg:#F3F6F8; --surface:#FFFFFF; --ink:#1C2830; --muted:#5B6873; --line:#D6DEE4;
+  --accent:#006AA6; --accent-soft:#E2EFF7; --red:#BB3234; --ok:#2C7A4C; --ok-soft:#E1F1E7;
+  --hero-bg:#0B3A5B; --hero-ink:#FFFFFF; --hero-muted:#B9CFDF; --qr-bg:#FFFFFF; --step-ink:#FFFFFF;
+  --f-display:"Barlow Semi Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"Source Sans 3","Segoe UI",Calibri,Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F171D; --surface:#17222A; --ink:#E4ECF1; --muted:#9AAAB6; --line:#2A3943;
+  --accent:#4AA8DE; --accent-soft:#16344A; --red:#E06063; --ok:#5BBE84; --ok-soft:#173527;
+  --hero-bg:#0A2C45; --hero-ink:#FFFFFF; --hero-muted:#A9C3D6; --qr-bg:#FFFFFF; --step-ink:#0F171D; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F171D; --surface:#17222A; --ink:#E4ECF1; --muted:#9AAAB6; --line:#2A3943;
+  --accent:#4AA8DE; --accent-soft:#16344A; --red:#E06063; --ok:#5BBE84; --ok-soft:#173527;
+  --hero-bg:#0A2C45; --hero-ink:#FFFFFF; --hero-muted:#A9C3D6; --qr-bg:#FFFFFF; --step-ink:#0F171D; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:17px/1.55 var(--f-body)}
+.wrap{max-width:980px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.1}
+p{margin:0}
+.hero{background:var(--hero-bg);color:var(--hero-ink)}
+.hero .wrap{padding-block:36px 40px;display:grid;grid-template-columns:1fr auto;gap:32px;align-items:center}
+.brand{font:600 13px var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--hero-muted);display:flex;align-items:center;gap:10px}
+.brand i{width:10px;height:10px;background:var(--red);display:inline-block;border-radius:2px}
+.hero h1{font-size:clamp(34px,6vw,52px);margin-top:12px}
+.hero .lead{color:var(--hero-muted);margin-top:12px;max-width:36em}
+.linkrow{margin-top:22px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.url{font:500 14px var(--f-mono);background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.22);padding:10px 12px;border-radius:8px;color:var(--hero-ink);min-width:0;overflow-wrap:anywhere;user-select:all}
+.btn{font:700 16px var(--f-body);border:0;border-radius:8px;padding:11px 16px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
+.btn-main{background:#FFFFFF;color:#0B3A5B}
+.btn-ghost{background:transparent;color:var(--hero-ink);border:1px solid rgba(255,255,255,.4)}
+.btn:focus-visible{outline:3px solid #7CC4F0;outline-offset:2px}
+.qr{background:var(--qr-bg);padding:14px;border-radius:12px;text-align:center}
+.qr #qr{width:172px;height:172px}
+.qr #qr img,.qr #qr canvas{width:172px!important;height:172px!important}
+.qr small{display:block;color:#0B3A5B;font:600 13px var(--f-body);margin-top:8px}
+main .wrap{padding-block:34px 56px;display:grid;gap:30px}
+.pre{background:var(--accent-soft);border-radius:12px;padding:18px 20px;display:grid;gap:8px}
+.pre h2{font-size:22px}
+.pre ul{margin:0;padding-left:20px;display:grid;gap:4px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px;min-width:0}
+.card h2{font-size:26px}
+.card .sub{color:var(--muted);font-size:15px;margin-top:4px}
+ol.steps{list-style:none;counter-reset:s;margin:18px 0 0;padding:0;display:grid;gap:14px}
+ol.steps li{counter-increment:s;display:grid;grid-template-columns:30px 1fr;gap:12px;align-items:start}
+ol.steps li::before{content:counter(s);font:700 15px var(--f-display);width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--step-ink);display:grid;place-items:center}
+.k{font-weight:700}
+.ico{display:inline-grid;place-items:center;width:22px;height:22px;border:1.5px solid var(--ink);border-radius:5px;font-size:13px;vertical-align:-4px;margin:0 2px}
+.live{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:start;background:var(--ok-soft);border-radius:14px;padding:22px}
+.live .dot{width:14px;height:14px;border-radius:50%;background:var(--ok);margin-top:8px;box-shadow:0 0 0 6px color-mix(in srgb,var(--ok) 25%,transparent)}
+.live h2{font-size:26px}
+.live ul{margin:10px 0 0;padding-left:20px;display:grid;gap:6px}
+.faq h2{font-size:26px;margin-bottom:12px}
+.faq details{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 18px}
+.faq details+details{margin-top:10px}
+.faq summary{font-weight:700;cursor:pointer}
+.faq details p{margin-top:8px}
+.toast{color:var(--hero-muted);font-size:14px;min-height:1.2em}
+@media (max-width:760px){
+  .hero .wrap{grid-template-columns:1fr}
+  .qr{justify-self:start}
+  .cols{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<header class="hero">
+  <div class="wrap">
+    <div>
+      <div class="brand"><i></i>Otten Projectmanagement</div>
+      <h1>Die OPM-Datenbank als App auf dein Handy</h1>
+      <p class="lead">Du brauchst kein Konto und musst nichts aus dem App Store laden. Einmal einrichten, dann liegt die Datenbank mit OTTEN-Symbol auf deinem Startbildschirm und ist immer auf dem neuesten Stand.</p>
+      <div class="linkrow">
+        <span class="url" id="url">https://otten-pm.github.io/opm-datenbank/</span>
+        <button class="btn btn-main" id="copy" type="button">Link kopieren</button>
+        <a class="btn btn-ghost" href="https://otten-pm.github.io/opm-datenbank/" target="_blank" rel="noopener">Öffnen</a>
+      </div>
+      <p class="toast" id="toast" aria-live="polite"></p>
+    </div>
+    <div class="qr">
+      <div id="qr" role="img" aria-label="QR-Code zur OPM-Datenbank-App"></div>
+      <small>Mit der Handy-Kamera scannen</small>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <section class="pre">
+      <h2>Bevor es losgeht</h2>
+      <ul>
+        <li>Du brauchst das <strong>Team-Passwort</strong>. Du bekommst es von Björn. Bitte nicht per Mail weiterleiten oder außerhalb des Teams weitergeben.</li>
+        <li>Die App ist zum <strong>Nachschauen</strong>. Ändern, Hochladen und Löschen geht nur in der Datenbank am Rechner.</li>
+        <li>Einmal Internet beim ersten Öffnen. Danach zeigt die App ohne Netz den zuletzt geladenen Stand.</li>
+      </ul>
+    </section>
+
+    <div class="cols">
+      <section class="card" aria-labelledby="ios">
+        <h2 id="ios">iPhone</h2>
+        <p class="sub">mit Safari</p>
+        <ol class="steps">
+          <li><span>Den QR-Code mit der Kamera scannen oder den Link in <span class="k">Safari</span> öffnen.</span></li>
+          <li><span>Das <span class="k">Team-Passwort</span> eingeben und auf <span class="k">Öffnen</span> tippen. Das Handy merkt sich das Passwort.</span></li>
+          <li><span>Unten auf <span class="k">Teilen</span> <span class="ico" aria-hidden="true">↑</span> tippen. Bei neueren iOS-Versionen steckt Teilen hinter den drei Punkten <span class="k">•••</span>.</span></li>
+          <li><span>Nach unten wischen und <span class="k">„Zum Home-Bildschirm“</span> wählen. Falls angezeigt, „Als Web-App öffnen“ eingeschaltet lassen.</span></li>
+          <li><span>Oben rechts auf <span class="k">Hinzufügen</span> tippen. Das OTTEN-Symbol „OPM“ liegt jetzt auf dem Home-Bildschirm.</span></li>
+        </ol>
+      </section>
+
+      <section class="card" aria-labelledby="android">
+        <h2 id="android">Android</h2>
+        <p class="sub">mit Chrome</p>
+        <ol class="steps">
+          <li><span>Den QR-Code mit der Kamera scannen oder den Link in <span class="k">Chrome</span> öffnen.</span></li>
+          <li><span>Das <span class="k">Team-Passwort</span> eingeben und auf <span class="k">Öffnen</span> tippen. Das Handy merkt sich das Passwort.</span></li>
+          <li><span>Oben rechts auf die drei Punkte <span class="k">⋮</span> tippen.</span></li>
+          <li><span><span class="k">„App installieren“</span> oder <span class="k">„Zum Startbildschirm hinzufügen“</span> wählen.</span></li>
+          <li><span>Auf <span class="k">Installieren</span> bzw. <span class="k">Hinzufügen</span> tippen. Die App „OPM“ liegt jetzt auf dem Startbildschirm und in der App-Liste.</span></li>
+        </ol>
+      </section>
+    </div>
+
+    <section class="live">
+      <span class="dot" aria-hidden="true"></span>
+      <div>
+        <h2>Aktualisiert sich von selbst</h2>
+        <p>Du musst nie etwas aktualisieren oder neu installieren.</p>
+        <ul>
+          <li>Neue Einträge aus der Datenbank kommen tagsüber spätestens nach 30 Minuten in der App an.</li>
+          <li>Oben rechts siehst du, von wann der Stand ist. Mit <span class="k">Aktualisieren</span> holst du dir sofort den neuesten Stand.</li>
+          <li>Wenn du die App öffnest und es einen neueren Stand gibt, lädt sie ihn selbst.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="faq">
+      <h2>Wenn es hakt</h2>
+      <details>
+        <summary>„Das Passwort stimmt nicht“</summary>
+        <p>Auf Groß- und Kleinschreibung und die Bindestriche achten. Hat Björn das Passwort geändert, fragt die App einmal nach dem neuen.</p>
+      </details>
+      <details>
+        <summary>Eine Datei lässt sich nicht öffnen</summary>
+        <p>Sehr große Dateien und CAD-Dateien (zum Beispiel STEP, STL, Blender) gibt es nur in der Datenbank am Rechner. Bei diesen Einträgen steht „Datei nur in der Datenbank am Rechner“.</p>
+      </details>
+      <details>
+        <summary>Ich sehe „Zum Home-Bildschirm“ nicht</summary>
+        <p>Auf dem iPhone in Safari öffnen, nicht im privaten Modus. In der Teilen-Liste ganz nach unten wischen. Auf Android Chrome verwenden, nicht den Browser des Herstellers.</p>
+      </details>
+      <details>
+        <summary>Die App zeigt einen alten Stand</summary>
+        <p>Auf <span class="k">Aktualisieren</span> tippen. Steht dort „Keine Verbindung“, fehlt gerade das Internet. Die App zeigt dann den zuletzt geladenen Stand.</p>
+      </details>
+    </section>
+  </div>
+</main>
+
+<script>
+(function(){
+  var URL = "https://otten-pm.github.io/opm-datenbank/";
+  try { new QRCode(document.getElementById("qr"), {text: URL, width: 344, height: 344, colorDark: "#0B3A5B", colorLight: "#FFFFFF", correctLevel: QRCode.CorrectLevel.M}); } catch(e) {}
+  var toast = document.getElementById("toast");
+  document.getElementById("copy").addEventListener("click", function(){
+    function fallback(){
+      var r = document.createRange(); r.selectNodeContents(document.getElementById("url"));
+      var s = getSelection(); s.removeAllRanges(); s.addRange(r);
+      toast.textContent = "Link markiert. Jetzt kopieren.";
+    }
+    try { navigator.clipboard.writeText(URL).then(function(){ toast.textContent = "Link kopiert."; }, fallback); }
+    catch(e) { fallback(); }
+  });
+})();
+</script>
+
+</body></html>
